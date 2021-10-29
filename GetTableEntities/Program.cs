@@ -44,6 +44,25 @@ namespace GetTableEntities
             Console.ReadLine();
         }
 
+        /// <summary>
+        /// 4bytes + Len(PartitionKey + RowKey) * 2 bytes + For - Each Property(8 bytes + Len(Property Name) * 2 bytes + Sizeof(.Net Property Type))
+        /// https://techcommunity.microsoft.com/t5/azure-paas-blog/calculate-the-size-capacity-of-storage-account-and-it-services/ba-p/1064046
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns>Size of an entity in bytes</returns>
+        private static int GetEntitySize(OfficeSupplyEntity entity)
+        {
+            const int sizeOfFixedHeader = 4;
+
+            var sizeOfPrice = (8 + (nameof(entity.Price).Length * 2) + sizeOfDouble);
+            var sizeOfQuantity = (8 + (nameof(entity.Quantity).Length * 2) + sizeOfInt);
+            var sizeOfProduct = (8 + (nameof(entity.Product).Length * 2) + (entity.Product.Length * 2 + 4));
+            var sizeOfKeys = (entity.PartitionKey.Length + entity.RowKey.Length) * 2;
+
+            //In bytes
+            var entitySize = sizeOfFixedHeader + sizeOfKeys + sizeOfProduct + sizeOfPrice + sizeOfQuantity;
+            return entitySize;
+        }
         private static void PopulateEntityIfNotExists(TableClient tableClient, Pageable<OfficeSupplyEntity> queryResultsLINQ)
         {
             var entity1 = new OfficeSupplyEntity
@@ -63,29 +82,9 @@ namespace GetTableEntities
                 Price = 15.00,
                 Quantity = 100
             };
-           
+
             tableClient.AddEntity(entity1);
-            tableClient.AddEntity(entity2);          
-        }
-
-        /// <summary>
-        /// 4bytes + Len(PartitionKey + RowKey) * 2 bytes + For - Each Property(8 bytes + Len(Property Name) * 2 bytes + Sizeof(.Net Property Type))
-        /// https://techcommunity.microsoft.com/t5/azure-paas-blog/calculate-the-size-capacity-of-storage-account-and-it-services/ba-p/1064046
-        /// </summary>
-        /// <param name="entity"></param>
-        /// <returns>Size of an entity in bytes</returns>
-        private static int GetEntitySize(OfficeSupplyEntity entity)
-        {
-            const int sizeOfPrice = (8 + (5 * 2) + sizeOfDouble);
-            const int sizeOfQuantity = (8 + (8 * 2) + sizeOfInt);
-            const int sizeOfFixedHeader = 4;
-
-            int sizeOfProduct = (8 + (6 * 2) + (entity.Product.Length * 2 + 4));
-            int sizeOfKeys = (entity.PartitionKey.Length + entity.RowKey.Length) * 2;
-
-            //In bytes
-            var entitySize = sizeOfFixedHeader + sizeOfKeys + sizeOfProduct + sizeOfPrice + sizeOfQuantity;
-            return entitySize;
+            tableClient.AddEntity(entity2);
         }
 
         public class OfficeSupplyEntity : ITableEntity
